@@ -116,7 +116,7 @@ export default function Home() {
 
     // Try local search first (instant)
     if (isDataLoaded()) {
-      const results = searchLocalCards(query, 100);
+      const results = searchLocalCards(query, 10000);
       setRawCards(results);
       setHasSearched(true);
       setIsLoading(false);
