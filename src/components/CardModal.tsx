@@ -63,9 +63,6 @@ export default function CardModal({ card, onClose }: CardModalProps) {
     (a, b) => b[1].market - a[1].market
   );
 
-  // Find max price for bar scaling
-  const maxPrice = Math.max(...variants.map(([, p]) => p.high || p.market));
-
   const copyPrice = (price: number, label: string) => {
     navigator.clipboard.writeText(`$${price.toFixed(2)}`);
     setCopied(label);
@@ -189,92 +186,81 @@ export default function CardModal({ card, onClose }: CardModalProps) {
             )}
           </div>
 
-          {/* Price Chart */}
+          {/* Price Table */}
           <div className="space-y-2">
             {variants.map(([variant, prices]) => {
-              const barWidth = maxPrice > 0 ? (prices.market / maxPrice) * 100 : 0;
               const label = variantLabels[variant] || variant;
 
               return (
-                <div key={variant} className="group">
-                  {/* Variant Label + Market Price */}
-                  <div className="flex items-center justify-between mb-1">
+                <div
+                  key={variant}
+                  className="bg-[#1a1a2e] border-2 border-[var(--poke-border)] p-3"
+                >
+                  {/* Variant Label */}
+                  <div className="flex items-center justify-between mb-2">
                     <span
-                      className="text-[var(--poke-gray)]"
-                      style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                      className="text-[var(--poke-yellow)]"
+                      style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
                     >
-                      {label}
+                      {label.toUpperCase()}
                     </span>
                     <button
                       onClick={() => copyPrice(prices.market, variant)}
-                      className="flex items-center gap-1 text-[var(--poke-green)] hover:text-[var(--poke-yellow)] transition-colors"
-                      style={{ fontFamily: "var(--font-press-start)", fontSize: "11px" }}
+                      className="text-[var(--poke-gray)] hover:text-[var(--poke-white)] transition-colors"
+                      style={{ fontFamily: "var(--font-vt323)", fontSize: "12px" }}
                     >
-                      {formatPrice(prices.market)}
-                      <span className="text-[10px] opacity-60 group-hover:opacity-100">
-                        {copied === variant ? "✓" : "⧉"}
-                      </span>
+                      {copied === variant ? "✓ Copied" : "📋 Copy"}
                     </button>
                   </div>
 
-                  {/* Price Bar */}
-                  <div className="relative h-6 bg-[#1a1a2e] border border-[var(--poke-border)]/50">
-                    {/* Range bar (low to high) */}
-                    {prices.low && prices.high && (
+                  {/* Price Row: LOW - MARKET - HIGH */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
                       <div
-                        className="absolute top-0 bottom-0 bg-[var(--poke-blue)]/20"
-                        style={{
-                          left: `${(prices.low / maxPrice) * 100}%`,
-                          width: `${((prices.high - prices.low) / maxPrice) * 100}%`,
-                        }}
-                      />
-                    )}
-                    {/* Market price bar */}
-                    <div
-                      className="absolute top-0 bottom-0 bg-gradient-to-r from-[var(--poke-green)] to-[var(--poke-green)]/70"
-                      style={{ width: `${barWidth}%` }}
-                    />
-                    {/* Price labels inside bar */}
-                    <div className="absolute inset-0 flex items-center justify-between px-2">
-                      <span
-                        className="text-[var(--poke-white)]/80"
-                        style={{ fontFamily: "var(--font-vt323)", fontSize: "11px" }}
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
                       >
-                        {prices.low ? formatPrice(prices.low) : ""}
-                      </span>
-                      <span
-                        className="text-[var(--poke-white)]/80"
-                        style={{ fontFamily: "var(--font-vt323)", fontSize: "11px" }}
+                        LOW
+                      </div>
+                      <div
+                        className="text-[var(--poke-white)]"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "15px" }}
                       >
-                        {prices.high ? formatPrice(prices.high) : ""}
-                      </span>
+                        {prices.low ? formatPrice(prices.low) : "—"}
+                      </div>
+                    </div>
+                    <div className="bg-[var(--poke-green)]/20 -mx-1 px-1 py-1">
+                      <div
+                        className="text-[var(--poke-green)]"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        MARKET
+                      </div>
+                      <div
+                        className="text-[var(--poke-green)]"
+                        style={{ fontFamily: "var(--font-press-start)", fontSize: "12px" }}
+                      >
+                        {formatPrice(prices.market)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        HIGH
+                      </div>
+                      <div
+                        className="text-[var(--poke-white)]"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "15px" }}
+                      >
+                        {prices.high ? formatPrice(prices.high) : "—"}
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 pt-2 border-t border-[var(--poke-border)]/30">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-2 bg-[var(--poke-green)]" />
-              <span
-                className="text-[var(--poke-gray)]/70"
-                style={{ fontFamily: "var(--font-vt323)", fontSize: "11px" }}
-              >
-                Market
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-2 bg-[var(--poke-blue)]/30" />
-              <span
-                className="text-[var(--poke-gray)]/70"
-                style={{ fontFamily: "var(--font-vt323)", fontSize: "11px" }}
-              >
-                Low-High Range
-              </span>
-            </div>
           </div>
         </div>
 
