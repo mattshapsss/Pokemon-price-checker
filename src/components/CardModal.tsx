@@ -72,10 +72,16 @@ export default function CardModal({ card, onClose }: CardModalProps) {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  // Generate search URLs for graded cards
+  // Generate search URLs for graded cards and eBay
   const cardSearchName = encodeURIComponent(`${card.name} ${card.setName}`);
+  const cardSearchSimple = encodeURIComponent(`${card.name} pokemon card`);
   const psaSearchUrl = `https://www.tcgplayer.com/search/pokemon/product?q=${cardSearchName}%20PSA&view=grid`;
   const cgcSearchUrl = `https://www.tcgplayer.com/search/pokemon/product?q=${cardSearchName}%20CGC&view=grid`;
+
+  // eBay sold listings - shows actual transaction prices
+  const ebayRawSoldUrl = `https://www.ebay.com/sch/i.html?_nkw=${cardSearchSimple}&_sacat=0&LH_Sold=1&LH_Complete=1&_sop=13`;
+  const ebayPsaSoldUrl = `https://www.ebay.com/sch/i.html?_nkw=${cardSearchSimple}%20PSA&_sacat=0&LH_Sold=1&LH_Complete=1&_sop=13`;
+  const ebayGradedSoldUrl = `https://www.ebay.com/sch/i.html?_nkw=${cardSearchSimple}%20graded&_sacat=0&LH_Sold=1&LH_Complete=1&_sop=13`;
 
   return (
     <div
@@ -272,7 +278,7 @@ export default function CardModal({ card, onClose }: CardModalProps) {
           </div>
         </div>
 
-        {/* GRADED Section */}
+        {/* GRADED PRICES Section */}
         <div className="p-4 border-t-2 border-[var(--poke-border)]/50 space-y-3">
           <h3
             className="text-[var(--poke-white)] flex items-center gap-2"
@@ -286,8 +292,7 @@ export default function CardModal({ card, onClose }: CardModalProps) {
             className="text-[var(--poke-gray)]/70"
             style={{ fontFamily: "var(--font-vt323)", fontSize: "13px" }}
           >
-            Graded cards (PSA, CGC, BGS) are listed separately on TCGPlayer.
-            Click below to search:
+            Search TCGPlayer for graded versions:
           </p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -310,6 +315,57 @@ export default function CardModal({ card, onClose }: CardModalProps) {
             >
               <span className="text-[var(--poke-blue)]">CGC</span>
               <span className="text-[var(--poke-gray)]">Grades →</span>
+            </a>
+          </div>
+        </div>
+
+        {/* SALES HISTORY Section */}
+        <div className="p-4 border-t-2 border-[var(--poke-border)]/50 space-y-3">
+          <h3
+            className="text-[var(--poke-white)] flex items-center gap-2"
+            style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
+          >
+            <span className="w-2 h-2 bg-[var(--poke-green)]" />
+            RECENT SALES
+          </h3>
+
+          <p
+            className="text-[var(--poke-gray)]/70"
+            style={{ fontFamily: "var(--font-vt323)", fontSize: "13px" }}
+          >
+            See actual sold prices on eBay:
+          </p>
+
+          <div className="grid grid-cols-3 gap-2">
+            <a
+              href={ebayRawSoldUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-green)] transition-colors"
+              style={{ fontFamily: "var(--font-vt323)", fontSize: "12px" }}
+            >
+              <span className="text-[var(--poke-green)]">RAW</span>
+              <span className="text-[var(--poke-gray)] text-[10px]">Sold →</span>
+            </a>
+            <a
+              href={ebayPsaSoldUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-red)] transition-colors"
+              style={{ fontFamily: "var(--font-vt323)", fontSize: "12px" }}
+            >
+              <span className="text-[var(--poke-red)]">PSA</span>
+              <span className="text-[var(--poke-gray)] text-[10px]">Sold →</span>
+            </a>
+            <a
+              href={ebayGradedSoldUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-yellow)] transition-colors"
+              style={{ fontFamily: "var(--font-vt323)", fontSize: "12px" }}
+            >
+              <span className="text-[var(--poke-yellow)]">ALL</span>
+              <span className="text-[var(--poke-gray)] text-[10px]">Graded →</span>
             </a>
           </div>
         </div>
