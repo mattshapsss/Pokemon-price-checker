@@ -1,65 +1,230 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import SearchBar, { SearchBarRef } from "@/components/SearchBar";
+import CardGrid from "@/components/CardGrid";
+import SortToggle, { SortOption, getSavedSort, saveSort } from "@/components/SortToggle";
+import {
+  CachedCard,
+  loadCardData,
+  searchCards as searchLocalCards,
+  isDataLoaded,
+  getDataInfo,
+} from "@/lib/card-search";
+import { searchCardsAction } from "./actions";
+import { PokemonCard } from "@/lib/pokemon-api";
+
+function sortCards(cards: CachedCard[], sortBy: SortOption): CachedCard[] {
+  const sorted = [...cards];
+  switch (sortBy) {
+    case "price-high":
+      return sorted.sort((a, b) => b.highestPrice - a.highestPrice);
+    case "price-low":
+      return sorted.sort((a, b) => a.highestPrice - b.highestPrice);
+    case "name":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case "newest":
+      return sorted.sort((a, b) =>
+        new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
+      );
+    default:
+      return sorted;
+  }
+}
 
 export default function Home() {
+  const [rawCards, setRawCards] = useState<CachedCard[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("price-high");
+  const searchBarRef = useRef<SearchBarRef>(null);
+
+  // Load card data on mount (optional - will fall back to API if not available)
+  useEffect(() => {
+    loadCardData()
+      .then(() => {
+        setDataLoading(false);
+        const info = getDataInfo();
+        if (info) {
+          console.log(`Cards loaded: ${info.totalCards} (min $${info.minPrice})`);
+        }
+      })
+      .catch((err) => {
+        // Not an error - just means we'll use API fallback
+        console.log("Local card data not available, using API search");
+        setDataLoading(false);
+      });
+  }, []);
+
+  // Load saved sort preference on mount
+  useEffect(() => {
+    setSortBy(getSavedSort());
+  }, []);
+
+  // Apply sorting client-side
+  const cards = useMemo(() => sortCards(rawCards, sortBy), [rawCards, sortBy]);
+
+  const handleSortChange = useCallback((newSort: SortOption) => {
+    setSortBy(newSort);
+    saveSort(newSort);
+  }, []);
+
+  // Convert API card to cached format
+  const apiToCached = useCallback((card: PokemonCard): CachedCard => {
+    const prices: CachedCard["prices"] = {};
+    const tcgPrices = card.tcgplayer?.prices;
+    if (tcgPrices) {
+      const keys = ["normal", "holofoil", "reverseHolofoil", "1stEditionHolofoil", "1stEditionNormal"] as const;
+      for (const key of keys) {
+        const p = tcgPrices[key];
+        if (p?.market) {
+          prices[key] = { market: p.market, low: p.low, high: p.high };
+        }
+      }
+    }
+    const allPrices = Object.values(prices).map(p => p.market).filter(Boolean);
+    return {
+      id: card.id,
+      name: card.name,
+      rarity: card.rarity || "Unknown",
+      number: card.number,
+      setId: card.set.id,
+      setName: card.set.name,
+      series: card.set.series,
+      releaseDate: card.set.releaseDate,
+      imageSmall: card.images.small,
+      imageLarge: card.images.large,
+      tcgplayerUrl: card.tcgplayer?.url || "",
+      priceUpdatedAt: card.tcgplayer?.updatedAt || "",
+      prices,
+      highestPrice: allPrices.length > 0 ? Math.max(...allPrices) : 0,
+    };
+  }, []);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setRawCards([]);
+      setHasSearched(false);
+      setError(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    // Try local search first (instant)
+    if (isDataLoaded()) {
+      const results = searchLocalCards(query, 100);
+      setRawCards(results);
+      setHasSearched(true);
+      setIsLoading(false);
+
+      if (results.length > 0) {
+        searchBarRef.current?.saveRecentSearch(query);
+      }
+      return;
+    }
+
+    // Fallback to API search (slower)
+    try {
+      const result = await searchCardsAction(query);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        const converted = result.cards.map(apiToCached);
+        setRawCards(converted);
+
+        if (converted.length > 0) {
+          searchBarRef.current?.saveRecentSearch(query);
+        }
+      }
+      setHasSearched(true);
+    } catch (err) {
+      setError("Search failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiToCached]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="header-bar sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1
+            className="text-[var(--poke-white)] flex items-center gap-2"
+            style={{ fontFamily: "var(--font-press-start)", fontSize: "clamp(10px, 3vw, 14px)" }}
+          >
+            {/* Pokeball icon */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+              <circle cx="12" cy="12" r="11" fill="white" stroke="#0f0f1a" strokeWidth="2"/>
+              <path d="M1 12h22" stroke="#0f0f1a" strokeWidth="2"/>
+              <circle cx="12" cy="12" r="4" fill="white" stroke="#0f0f1a" strokeWidth="2"/>
+              <circle cx="12" cy="12" r="2" fill="#0f0f1a"/>
+              <path d="M1 12h7" stroke="#ff1a1a" strokeWidth="2"/>
+              <path d="M16 12h7" stroke="white" strokeWidth="2"/>
+              <path d="M12 1v7" stroke="#ff1a1a" strokeWidth="2"/>
+            </svg>
+            <span className="hidden sm:inline">POKE PRICE</span>
+            <span className="sm:hidden">PRICE</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <div
+            className="text-[var(--poke-white)] opacity-80"
+            style={{ fontFamily: "var(--font-vt323)", fontSize: "0.875rem" }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            TCGPLAYER PRICES
+          </div>
         </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 space-y-6">
+        {/* Search Section */}
+        <section className="retro-container p-4">
+          <SearchBar ref={searchBarRef} onSearch={handleSearch} isLoading={isLoading} />
+        </section>
+
+        {/* Sort + Results Section */}
+        <section className="space-y-3">
+          {hasSearched && cards.length > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <SortToggle value={sortBy} onChange={handleSortChange} />
+              <span
+                className="text-[var(--poke-gray)]"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "0.9rem" }}
+              >
+                {cards.length} results
+              </span>
+            </div>
+          )}
+          <CardGrid
+            cards={cards}
+            isLoading={isLoading}
+            error={error}
+            hasSearched={hasSearched}
+          />
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t-4 border-[var(--poke-border)] bg-[var(--poke-dark)] py-4 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <div
+            className="text-[var(--poke-gray)]"
+            style={{ fontFamily: "var(--font-vt323)", fontSize: "0.875rem" }}
+          >
+            Prices from TCGPlayer. Not affiliated with Pokemon Company.
+          </div>
+          <div
+            className="text-[var(--poke-gray)] opacity-60"
+            style={{ fontFamily: "var(--font-vt323)", fontSize: "0.75rem" }}
+          >
+            Data via PokemonTCG.io API
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

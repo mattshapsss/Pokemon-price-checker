@@ -1,26 +1,364 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   POKEMON PRICE CHECKER - RETRO GAME BOY AESTHETIC
+   Hard corners, pixel vibes, Pokemon Red/Blue era colors
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Pokemon Red/Blue Palette */
+  --poke-dark: #0f0f1a;
+  --poke-darker: #080810;
+  --poke-navy: #1a1a2e;
+  --poke-red: #ff1a1a;
+  --poke-red-dark: #cc0000;
+  --poke-blue: #3b4cca;
+  --poke-yellow: #ffcc00;
+  --poke-yellow-dark: #cc9900;
+  --poke-green: #00cc66;
+  --poke-white: #f0f0f0;
+  --poke-gray: #888899;
+  --poke-border: #3a3a5c;
+
+  --background: var(--poke-darker);
+  --foreground: var(--poke-white);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-pixel: var(--font-press-start);
+  --font-body: var(--font-vt323);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Reset all border-radius - HARD CORNERS ONLY */
+*, *::before, *::after {
+  border-radius: 0 !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--poke-darker);
+  color: var(--poke-white);
+  font-family: var(--font-body), 'Courier New', monospace;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Scanline overlay effect for CRT vibes */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* Pixel grid background pattern */
+.pixel-bg {
+  background-color: var(--poke-darker);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+/* Retro container with thick border */
+.retro-container {
+  border: 4px solid var(--poke-border);
+  background: var(--poke-navy);
+  box-shadow:
+    8px 8px 0 var(--poke-dark),
+    inset 0 0 0 2px var(--poke-dark);
+}
+
+/* Input styling - chunky retro */
+.retro-input {
+  background: var(--poke-dark);
+  border: 3px solid var(--poke-border);
+  color: var(--poke-white);
+  font-size: 1.25rem;
+  padding: 1rem 1.25rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: inset 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.retro-input:focus {
+  border-color: var(--poke-yellow);
+  box-shadow:
+    inset 4px 4px 0 rgba(0,0,0,0.3),
+    0 0 0 2px var(--poke-yellow);
+}
+
+.retro-input::placeholder {
+  color: var(--poke-gray);
+  opacity: 0.7;
+}
+
+/* Retro button - thick, chunky, pressable */
+.retro-btn {
+  background: var(--poke-red);
+  border: 3px solid var(--poke-red-dark);
+  color: var(--poke-white);
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow:
+    4px 4px 0 var(--poke-dark),
+    inset -2px -2px 0 var(--poke-red-dark),
+    inset 2px 2px 0 rgba(255,255,255,0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.retro-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow:
+    3px 3px 0 var(--poke-dark),
+    inset -2px -2px 0 var(--poke-red-dark),
+    inset 2px 2px 0 rgba(255,255,255,0.2);
+}
+
+.retro-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow:
+    0 0 0 var(--poke-dark),
+    inset -2px -2px 0 var(--poke-red-dark),
+    inset 2px 2px 0 rgba(255,255,255,0.2);
+}
+
+.retro-btn-blue {
+  background: var(--poke-blue);
+  border-color: #2a3b99;
+}
+
+.retro-btn-blue:hover, .retro-btn-blue:active {
+  background: var(--poke-blue);
+}
+
+/* Card styling */
+.poke-card {
+  background: var(--poke-navy);
+  border: 3px solid var(--poke-border);
+  box-shadow: 6px 6px 0 var(--poke-dark);
+  transition: transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.poke-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--poke-dark);
+}
+
+.poke-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 4px 4px 0 var(--poke-dark);
+}
+
+/* Price display - BIG and BOLD */
+.price-main {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: var(--poke-yellow);
+  text-shadow: 2px 2px 0 var(--poke-dark);
+}
+
+.price-range {
+  font-size: 0.875rem;
+  color: var(--poke-gray);
+}
+
+/* Variant badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid;
+}
+
+.badge-holo {
+  background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #ff6b6b);
+  background-size: 200% 200%;
+  animation: holographic 3s ease infinite;
+  border-color: var(--poke-white);
+  color: var(--poke-dark);
+  text-shadow: none;
+}
+
+.badge-reverse {
+  background: var(--poke-blue);
+  border-color: #2a3b99;
+  color: var(--poke-white);
+}
+
+.badge-normal {
+  background: var(--poke-gray);
+  border-color: #666677;
+  color: var(--poke-white);
+}
+
+.badge-1st {
+  background: var(--poke-yellow);
+  border-color: var(--poke-yellow-dark);
+  color: var(--poke-dark);
+}
+
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Loading spinner - pixel style */
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 4px solid var(--poke-border);
+  border-top-color: var(--poke-yellow);
+  animation: spin 0.8s steps(8) infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Header bar */
+.header-bar {
+  background: var(--poke-red);
+  border-bottom: 4px solid var(--poke-red-dark);
+  box-shadow: 0 4px 0 var(--poke-dark);
+}
+
+/* Search result count */
+.result-count {
+  background: var(--poke-dark);
+  border: 2px solid var(--poke-border);
+  padding: 0.5rem 1rem;
+  display: inline-block;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--poke-dark);
+  border: 2px solid var(--poke-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--poke-border);
+  border: 2px solid var(--poke-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--poke-gray);
+}
+
+/* Quick chips for recent/popular searches */
+.search-chip {
+  background: var(--poke-dark);
+  border: 2px solid var(--poke-border);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--poke-white);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.search-chip:hover {
+  background: var(--poke-navy);
+  border-color: var(--poke-yellow);
+  color: var(--poke-yellow);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--poke-gray);
+}
+
+/* Responsive text */
+@media (max-width: 640px) {
+  .price-main {
+    font-size: 1.5rem;
+  }
+}
+
+/* Pokeball decoration */
+.pokeball-icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+}
+
+.pokeball-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, var(--poke-red) 45%, var(--poke-dark) 45%, var(--poke-dark) 55%, var(--poke-white) 55%);
+  border: 2px solid var(--poke-dark);
+}
+
+.pokeball-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: var(--poke-white);
+  border: 2px solid var(--poke-dark);
+}
+
+/* Flashing cursor for input */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* TCGPlayer link styling */
+.tcg-link {
+  color: var(--poke-blue);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.tcg-link:hover {
+  border-bottom-color: var(--poke-blue);
+}
+
+/* Card image wrapper with retro frame */
+.card-image-frame {
+  border: 3px solid var(--poke-border);
+  background: var(--poke-dark);
+  padding: 4px;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+/* Blink animation for "searching" indicator */
+.blink {
+  animation: blink 1s step-end infinite;
 }
