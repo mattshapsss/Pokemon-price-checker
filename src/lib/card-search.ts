@@ -2,7 +2,7 @@
  * Client-side card search using cached data and Fuse.js
  */
 
-import Fuse from "fuse.js";
+import Fuse, { IFuseOptions } from "fuse.js";
 
 export interface CachedCard {
   id: string;
@@ -39,7 +39,7 @@ let fuseIndex: Fuse<CachedCard> | null = null;
 let loadPromise: Promise<void> | null = null;
 
 // Fuse.js options for fuzzy search
-const fuseOptions: Fuse.IFuseOptions<CachedCard> = {
+const fuseOptions: IFuseOptions<CachedCard> = {
   keys: [
     { name: "name", weight: 2 },
     { name: "setName", weight: 0.5 },
