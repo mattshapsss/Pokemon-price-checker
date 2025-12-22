@@ -13,6 +13,7 @@ import {
 } from "@/lib/card-search";
 import { searchCardsAction } from "./actions";
 import { PokemonCard } from "@/lib/pokemon-api";
+import CardModal from "@/components/CardModal";
 
 function sortCards(cards: CachedCard[], sortBy: SortOption): CachedCard[] {
   const sorted = [...cards];
@@ -39,6 +40,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("price-high");
+  const [selectedCard, setSelectedCard] = useState<CachedCard | null>(null);
   const searchBarRef = useRef<SearchBarRef>(null);
 
   // Load card data on mount (optional - will fall back to API if not available)
@@ -204,6 +206,7 @@ export default function Home() {
             isLoading={isLoading}
             error={error}
             hasSearched={hasSearched}
+            onCardClick={setSelectedCard}
           />
         </section>
       </main>
@@ -225,6 +228,11 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <CardModal card={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
     </div>
   );
 }

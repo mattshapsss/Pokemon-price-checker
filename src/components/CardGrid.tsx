@@ -9,9 +9,10 @@ interface CardGridProps {
   error: string | null;
   hasSearched: boolean;
   dataLoading?: boolean;
+  onCardClick?: (card: CachedCard) => void;
 }
 
-export default function CardGrid({ cards, isLoading, error, hasSearched }: CardGridProps) {
+export default function CardGrid({ cards, isLoading, error, hasSearched, onCardClick }: CardGridProps) {
   if (error) {
     return (
       <div className="retro-container p-6 text-center">
@@ -90,7 +91,11 @@ export default function CardGrid({ cards, isLoading, error, hasSearched }: CardG
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <CardResult key={card.id} card={card} />
+        <CardResult
+          key={card.id}
+          card={card}
+          onClick={onCardClick ? () => onCardClick(card) : undefined}
+        />
       ))}
     </div>
   );

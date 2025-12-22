@@ -6,6 +6,7 @@ import { useState } from "react";
 
 interface CardResultProps {
   card: CachedCard;
+  onClick?: () => void;
 }
 
 function formatPrice(price: number | null | undefined): string {
@@ -13,7 +14,7 @@ function formatPrice(price: number | null | undefined): string {
   return `$${price.toFixed(2)}`;
 }
 
-export default function CardResult({ card }: CardResultProps) {
+export default function CardResult({ card, onClick }: CardResultProps) {
   const [imageError, setImageError] = useState(false);
 
   // Get variant keys in order of value
@@ -25,7 +26,10 @@ export default function CardResult({ card }: CardResultProps) {
   const primaryPrice = card.prices[primaryVariant];
 
   return (
-    <article className="poke-card flex flex-col">
+    <article
+      className="poke-card flex flex-col cursor-pointer hover:border-[var(--poke-yellow)] transition-colors"
+      onClick={onClick}
+    >
       {/* Card Image - Hero Element */}
       <div className="relative aspect-[2.5/3.5] bg-[var(--poke-dark)]">
         {!imageError ? (
@@ -132,6 +136,7 @@ export default function CardResult({ card }: CardResultProps) {
             href={card.tcgplayerUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="block mt-2 text-center py-2 bg-[var(--poke-dark)] border-2 border-[var(--poke-border)] text-[var(--poke-blue)] hover:border-[var(--poke-blue)] transition-colors"
             style={{ fontFamily: "var(--font-vt323)", fontSize: "0.875rem" }}
           >
