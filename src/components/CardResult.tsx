@@ -7,6 +7,7 @@ import { useState } from "react";
 interface CardResultProps {
   card: CachedCard;
   onClick?: () => void;
+  compact?: boolean;
 }
 
 function formatPrice(price: number | null | undefined): string {
@@ -14,7 +15,7 @@ function formatPrice(price: number | null | undefined): string {
   return `$${price.toFixed(2)}`;
 }
 
-export default function CardResult({ card, onClick }: CardResultProps) {
+export default function CardResult({ card, onClick, compact = false }: CardResultProps) {
   const [imageError, setImageError] = useState(false);
 
   // Get variant keys in order of value
@@ -24,7 +25,82 @@ export default function CardResult({ card, onClick }: CardResultProps) {
 
   const primaryVariant = variantKeys[0];
   const primaryPrice = card.prices[primaryVariant];
+  const primaryLabel = priceLabels[primaryVariant] || primaryVariant?.toUpperCase();
+  const primaryBadgeClass = priceBadgeClass[primaryVariant] || "badge-normal";
 
+  // Compact mode - minimal info, smaller footprint
+  if (compact) {
+    return (
+      <article
+        className="poke-card flex flex-col cursor-pointer hover:border-[var(--poke-yellow)] transition-colors"
+        onClick={onClick}
+      >
+        {/* Card Image - Smaller aspect ratio for compact */}
+        <div className="relative aspect-[2.5/3.5] bg-[var(--poke-dark)]">
+          {!imageError ? (
+            <Image
+              src={card.imageSmall || card.imageLarge}
+              alt={`${card.name} - ${card.setName}`}
+              fill
+              sizes="(max-width: 640px) 30vw, (max-width: 1024px) 22vw, 15vw"
+              className="object-contain p-0.5"
+              onError={() => setImageError(true)}
+              priority={false}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-[var(--poke-gray)]">
+              <span style={{ fontFamily: "var(--font-vt323)", fontSize: "0.75rem" }}>
+                NO IMG
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Minimal Info */}
+        <div className="p-2 border-t-2 border-[var(--poke-border)]">
+          {/* Card Name - truncated */}
+          <h3
+            className="text-[var(--poke-white)] font-bold truncate"
+            style={{ fontFamily: "var(--font-vt323)", fontSize: "1rem" }}
+            title={card.name}
+          >
+            {card.name}
+          </h3>
+
+          {/* Main Price Only */}
+          <div className="flex items-center justify-between gap-1 mt-1">
+            {primaryPrice ? (
+              <>
+                <span
+                  className="text-[var(--poke-yellow)] font-bold"
+                  style={{ fontFamily: "var(--font-vt323)", fontSize: "1.25rem" }}
+                >
+                  {formatPrice(primaryPrice.market)}
+                </span>
+                {primaryLabel && (
+                  <span
+                    className={`badge ${primaryBadgeClass}`}
+                    style={{ fontFamily: "var(--font-press-start)", fontSize: "5px" }}
+                  >
+                    {primaryLabel}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span
+                className="text-[var(--poke-gray)]"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "0.875rem" }}
+              >
+                N/A
+              </span>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // Normal mode - full info
   return (
     <article
       className="poke-card flex flex-col cursor-pointer hover:border-[var(--poke-yellow)] transition-colors"

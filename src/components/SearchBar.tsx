@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef, useImperativeHandle, forwardR
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  onSubmit?: (query: string) => void; // Called on Enter/explicit submit - saves to recent
   isLoading: boolean;
 }
 
@@ -12,7 +13,7 @@ export interface SearchBarRef {
 }
 
 const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(function SearchBar(
-  { onSearch, isLoading },
+  { onSearch, onSubmit, isLoading },
   ref
 ) {
   const [query, setQuery] = useState("");
@@ -69,14 +70,39 @@ const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(function SearchBar(
     [onSearch]
   );
 
-  // Quick search from chip - search immediately (will be saved on success)
+  // Handle explicit submit (Enter key or button) - triggers save
+  const handleSubmit = useCallback(
+    (term: string) => {
+      if (!term.trim() || term.trim().length < 2) return;
+      onSearch(term.trim());
+      onSubmit?.(term.trim());
+    },
+    [onSearch, onSubmit]
+  );
+
+  // Handle Enter key
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        handleSubmit(query);
+      }
+    },
+    [handleSubmit, query]
+  );
+
+  // Quick search from chip - search immediately and save
   const handleQuickSearch = useCallback(
     (term: string) => {
       setQuery(term);
       onSearch(term);
+      onSubmit?.(term); // Save to recent
       inputRef.current?.focus();
     },
-    [onSearch]
+    [onSearch, onSubmit]
   );
 
   // Clear search
@@ -95,6 +121,7 @@ const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(function SearchBar(
           type="text"
           value={query}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           placeholder="Search any Pokemon card..."
           className="retro-input pr-12 text-lg"
           style={{ fontFamily: "var(--font-vt323)" }}
@@ -150,16 +177,16 @@ const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(function SearchBar(
           style={{ fontFamily: "var(--font-vt323)", fontSize: "0.9rem" }}
         >
           <p>
-            <span className="text-[var(--poke-white)]">Search by name:</span>{" "}
+            <span className="text-[var(--poke-white)]">By name:</span>{" "}
             Charizard, Pikachu VMAX, Umbreon V
           </p>
           <p>
-            <span className="text-[var(--poke-white)]">Typos OK:</span>{" "}
-            We will find the closest match
+            <span className="text-[var(--poke-white)]">By card #:</span>{" "}
+            4/102, 25/102, base set 4
           </p>
           <p>
-            <span className="text-[var(--poke-white)]">Results:</span>{" "}
-            Sorted by value, shows all variants with TCGPlayer prices
+            <span className="text-[var(--poke-white)]">Typos OK:</span>{" "}
+            We find the closest match
           </p>
         </div>
       </div>

@@ -3,10 +3,32 @@
 import { CachedCard } from "@/lib/card-search";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import ImageLightbox from "./ImageLightbox";
 
 interface CardModalProps {
   card: CachedCard;
   onClose: () => void;
+}
+
+interface GradedPrices {
+  psa10?: number;
+  psa9?: number;
+  psa8?: number;
+  cgc10?: number;
+  cgc9?: number;
+  bgs10?: number;
+  bgs9?: number;
+}
+
+interface GradedPriceData {
+  found: boolean;
+  cardName?: string;
+  setName?: string;
+  currency: string;
+  rawPrice?: number;
+  graded: GradedPrices;
+  source: string;
+  fetchedAt: string;
 }
 
 const variantLabels: Record<string, string> = {
@@ -41,6 +63,40 @@ function getRelativeTime(dateString: string): string {
 
 export default function CardModal({ card, onClose }: CardModalProps) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [gradedPrices, setGradedPrices] = useState<GradedPriceData | null>(null);
+  const [gradedLoading, setGradedLoading] = useState(true);
+  const [gradedError, setGradedError] = useState<string | null>(null);
+  const [showLightbox, setShowLightbox] = useState(false);
+
+  // Fetch graded prices when modal opens
+  useEffect(() => {
+    const fetchGradedPrices = async () => {
+      setGradedLoading(true);
+      setGradedError(null);
+
+      try {
+        const params = new URLSearchParams({
+          name: card.name,
+          set: card.setName,
+          number: card.number,
+        });
+        const response = await fetch(`/api/graded-prices?${params}`);
+        const data = await response.json();
+
+        if (data.error) {
+          setGradedError(data.error);
+        } else {
+          setGradedPrices(data);
+        }
+      } catch {
+        setGradedError("Failed to load");
+      } finally {
+        setGradedLoading(false);
+      }
+    };
+
+    fetchGradedPrices();
+  }, [card.name, card.setName, card.number]);
 
   // Close on escape key
   useEffect(() => {
@@ -116,8 +172,11 @@ export default function CardModal({ card, onClose }: CardModalProps) {
 
         {/* Card Preview Row */}
         <div className="p-4 flex gap-4 border-b-2 border-[var(--poke-border)]/50">
-          {/* Thumbnail */}
-          <div className="relative w-24 h-32 flex-shrink-0 bg-[#1a1a2e] border-2 border-[var(--poke-border)]">
+          {/* Thumbnail - clickable to zoom */}
+          <button
+            onClick={() => setShowLightbox(true)}
+            className="relative w-24 h-32 flex-shrink-0 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-yellow)] transition-colors cursor-zoom-in group"
+          >
             <Image
               src={card.imageLarge || card.imageSmall}
               alt={card.name}
@@ -125,7 +184,16 @@ export default function CardModal({ card, onClose }: CardModalProps) {
               className="object-contain p-1"
               sizes="96px"
             />
-          </div>
+            {/* Zoom hint overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <span
+                className="opacity-0 group-hover:opacity-100 text-white transition-opacity"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+              >
+                TAP TO ZOOM
+              </span>
+            </div>
+          </button>
 
           {/* Card Info */}
           <div className="flex-1 min-w-0">
@@ -266,43 +334,215 @@ export default function CardModal({ card, onClose }: CardModalProps) {
 
         {/* GRADED PRICES Section */}
         <div className="p-4 border-t-2 border-[var(--poke-border)]/50 space-y-3">
-          <h3
-            className="text-[var(--poke-white)] flex items-center gap-2"
-            style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
-          >
-            <span className="w-2 h-2 bg-[var(--poke-yellow)]" />
-            GRADED PRICES
-          </h3>
-
-          <p
-            className="text-[var(--poke-gray)]/70"
-            style={{ fontFamily: "var(--font-vt323)", fontSize: "13px" }}
-          >
-            Search TCGPlayer for graded versions:
-          </p>
-
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href={psaSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-red)] transition-colors"
-              style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+          <div className="flex items-center justify-between">
+            <h3
+              className="text-[var(--poke-white)] flex items-center gap-2"
+              style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
             >
-              <span className="text-[var(--poke-red)]">PSA</span>
-              <span className="text-[var(--poke-gray)]">Grades →</span>
-            </a>
-            <a
-              href={cgcSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-blue)] transition-colors"
-              style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
-            >
-              <span className="text-[var(--poke-blue)]">CGC</span>
-              <span className="text-[var(--poke-gray)]">Grades →</span>
-            </a>
+              <span className="w-2 h-2 bg-[var(--poke-yellow)]" />
+              GRADED PRICES
+            </h3>
+            {gradedPrices && !gradedLoading && (
+              <span
+                className="text-[var(--poke-gray)]/60"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+              >
+                USD · TCGPlayer
+              </span>
+            )}
           </div>
+
+          {gradedLoading ? (
+            <div className="flex items-center gap-2 py-4">
+              <div className="loading-spinner" style={{ width: "16px", height: "16px" }} />
+              <span
+                className="text-[var(--poke-gray)]"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+              >
+                Loading graded prices...
+              </span>
+            </div>
+          ) : gradedError ? (
+            <div
+              className="text-[var(--poke-gray)]/70 py-2"
+              style={{ fontFamily: "var(--font-vt323)", fontSize: "13px" }}
+            >
+              {gradedError}
+            </div>
+          ) : gradedPrices?.found && Object.keys(gradedPrices.graded).length > 0 ? (
+            <div className="space-y-2">
+              {/* PSA Grades */}
+              {(gradedPrices.graded.psa10 || gradedPrices.graded.psa9 || gradedPrices.graded.psa8) && (
+                <div className="bg-[#1a1a2e] border-2 border-[var(--poke-border)] p-3">
+                  <div
+                    className="text-[var(--poke-red)] mb-2"
+                    style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
+                  >
+                    PSA GRADES
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        PSA 10
+                      </div>
+                      <div
+                        className={gradedPrices.graded.psa10 ? "text-[var(--poke-yellow)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-press-start)", fontSize: "11px" }}
+                      >
+                        {gradedPrices.graded.psa10 ? `$${gradedPrices.graded.psa10}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        PSA 9
+                      </div>
+                      <div
+                        className={gradedPrices.graded.psa9 ? "text-[var(--poke-white)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                      >
+                        {gradedPrices.graded.psa9 ? `$${gradedPrices.graded.psa9}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        PSA 8
+                      </div>
+                      <div
+                        className={gradedPrices.graded.psa8 ? "text-[var(--poke-white)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                      >
+                        {gradedPrices.graded.psa8 ? `$${gradedPrices.graded.psa8}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CGC Grades */}
+              {(gradedPrices.graded.cgc10 || gradedPrices.graded.cgc9) && (
+                <div className="bg-[#1a1a2e] border-2 border-[var(--poke-border)] p-3">
+                  <div
+                    className="text-[var(--poke-blue)] mb-2"
+                    style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
+                  >
+                    CGC GRADES
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        CGC 10
+                      </div>
+                      <div
+                        className={gradedPrices.graded.cgc10 ? "text-[var(--poke-yellow)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-press-start)", fontSize: "11px" }}
+                      >
+                        {gradedPrices.graded.cgc10 ? `$${gradedPrices.graded.cgc10}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        CGC 9
+                      </div>
+                      <div
+                        className={gradedPrices.graded.cgc9 ? "text-[var(--poke-white)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                      >
+                        {gradedPrices.graded.cgc9 ? `$${gradedPrices.graded.cgc9}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BGS Grades */}
+              {(gradedPrices.graded.bgs10 || gradedPrices.graded.bgs9) && (
+                <div className="bg-[#1a1a2e] border-2 border-[var(--poke-border)] p-3">
+                  <div
+                    className="text-[var(--poke-green)] mb-2"
+                    style={{ fontFamily: "var(--font-press-start)", fontSize: "9px" }}
+                  >
+                    BGS GRADES
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        BGS 10
+                      </div>
+                      <div
+                        className={gradedPrices.graded.bgs10 ? "text-[var(--poke-yellow)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-press-start)", fontSize: "11px" }}
+                      >
+                        {gradedPrices.graded.bgs10 ? `$${gradedPrices.graded.bgs10}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className="text-[var(--poke-gray)]/70"
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "10px" }}
+                      >
+                        BGS 9
+                      </div>
+                      <div
+                        className={gradedPrices.graded.bgs9 ? "text-[var(--poke-white)]" : "text-[var(--poke-gray)]/50"}
+                        style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                      >
+                        {gradedPrices.graded.bgs9 ? `$${gradedPrices.graded.bgs9}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p
+                className="text-[var(--poke-gray)]/70"
+                style={{ fontFamily: "var(--font-vt323)", fontSize: "13px" }}
+              >
+                No graded price data. Search TCGPlayer:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={psaSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-red)] transition-colors"
+                  style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                >
+                  <span className="text-[var(--poke-red)]">PSA</span>
+                  <span className="text-[var(--poke-gray)]">→</span>
+                </a>
+                <a
+                  href={cgcSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2 bg-[#1a1a2e] border-2 border-[var(--poke-border)] hover:border-[var(--poke-blue)] transition-colors"
+                  style={{ fontFamily: "var(--font-vt323)", fontSize: "14px" }}
+                >
+                  <span className="text-[var(--poke-blue)]">CGC</span>
+                  <span className="text-[var(--poke-gray)]">→</span>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SALES HISTORY Section */}
@@ -382,6 +622,15 @@ export default function CardModal({ card, onClose }: CardModalProps) {
           </button>
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {showLightbox && (
+        <ImageLightbox
+          src={card.imageLarge || card.imageSmall}
+          alt={card.name}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
     </div>
   );
 }

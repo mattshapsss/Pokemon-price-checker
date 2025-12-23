@@ -2,6 +2,7 @@
 
 import { CachedCard } from "@/lib/card-search";
 import CardResult from "./CardResult";
+import { DensityOption } from "./DensityToggle";
 
 interface CardGridProps {
   cards: CachedCard[];
@@ -10,9 +11,11 @@ interface CardGridProps {
   hasSearched: boolean;
   dataLoading?: boolean;
   onCardClick?: (card: CachedCard) => void;
+  density?: DensityOption;
 }
 
-export default function CardGrid({ cards, isLoading, error, hasSearched, onCardClick }: CardGridProps) {
+export default function CardGrid({ cards, isLoading, error, hasSearched, onCardClick, density = "normal" }: CardGridProps) {
+  const isCompact = density === "compact";
   if (error) {
     return (
       <div className="retro-container p-6 text-center">
@@ -88,13 +91,19 @@ export default function CardGrid({ cards, isLoading, error, hasSearched, onCardC
     );
   }
 
+  // Normal: 2/3/4 columns | Compact: 3/4/6 columns
+  const gridClass = isCompact
+    ? "grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2"
+    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className={gridClass}>
       {cards.map((card) => (
         <CardResult
           key={card.id}
           card={card}
           onClick={onCardClick ? () => onCardClick(card) : undefined}
+          compact={isCompact}
         />
       ))}
     </div>

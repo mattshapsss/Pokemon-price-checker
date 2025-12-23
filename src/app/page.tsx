@@ -4,10 +4,11 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import SearchBar, { SearchBarRef } from "@/components/SearchBar";
 import CardGrid from "@/components/CardGrid";
 import SortToggle, { SortOption, getSavedSort, saveSort } from "@/components/SortToggle";
+import DensityToggle, { DensityOption, getSavedDensity, saveDensity } from "@/components/DensityToggle";
 import {
   CachedCard,
   loadCardData,
-  searchCards as searchLocalCards,
+  smartSearch,
   isDataLoaded,
   getDataInfo,
 } from "@/lib/card-search";
@@ -40,6 +41,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("price-high");
+  const [density, setDensity] = useState<DensityOption>("normal");
   const [selectedCard, setSelectedCard] = useState<CachedCard | null>(null);
   const searchBarRef = useRef<SearchBarRef>(null);
 
@@ -60,9 +62,10 @@ export default function Home() {
       });
   }, []);
 
-  // Load saved sort preference on mount
+  // Load saved preferences on mount
   useEffect(() => {
     setSortBy(getSavedSort());
+    setDensity(getSavedDensity());
   }, []);
 
   // Apply sorting client-side
@@ -71,6 +74,11 @@ export default function Home() {
   const handleSortChange = useCallback((newSort: SortOption) => {
     setSortBy(newSort);
     saveSort(newSort);
+  }, []);
+
+  const handleDensityChange = useCallback((newDensity: DensityOption) => {
+    setDensity(newDensity);
+    saveDensity(newDensity);
   }, []);
 
   // Convert API card to cached format
@@ -116,16 +124,12 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
-    // Try local search first (instant)
+    // Try local smart search first (instant)
     if (isDataLoaded()) {
-      const results = searchLocalCards(query, 10000);
+      const results = smartSearch(query, 10000);
       setRawCards(results);
       setHasSearched(true);
       setIsLoading(false);
-
-      if (results.length > 0) {
-        searchBarRef.current?.saveRecentSearch(query);
-      }
       return;
     }
 
@@ -137,10 +141,6 @@ export default function Home() {
       } else {
         const converted = result.cards.map(apiToCached);
         setRawCards(converted);
-
-        if (converted.length > 0) {
-          searchBarRef.current?.saveRecentSearch(query);
-        }
       }
       setHasSearched(true);
     } catch (err) {
@@ -149,6 +149,13 @@ export default function Home() {
       setIsLoading(false);
     }
   }, [apiToCached]);
+
+  // Only save to recent on explicit submit (Enter or chip click)
+  const handleSearchSubmit = useCallback((query: string) => {
+    if (query.trim()) {
+      searchBarRef.current?.saveRecentSearch(query);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -185,14 +192,17 @@ export default function Home() {
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 space-y-6">
         {/* Search Section */}
         <section className="retro-container p-4">
-          <SearchBar ref={searchBarRef} onSearch={handleSearch} isLoading={isLoading} />
+          <SearchBar ref={searchBarRef} onSearch={handleSearch} onSubmit={handleSearchSubmit} isLoading={isLoading} />
         </section>
 
         {/* Sort + Results Section */}
         <section className="space-y-3">
           {hasSearched && cards.length > 0 && (
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <SortToggle value={sortBy} onChange={handleSortChange} />
+              <div className="flex items-center gap-2">
+                <SortToggle value={sortBy} onChange={handleSortChange} />
+                <DensityToggle value={density} onChange={handleDensityChange} />
+              </div>
               <span
                 className="text-[var(--poke-gray)]"
                 style={{ fontFamily: "var(--font-vt323)", fontSize: "0.9rem" }}
@@ -207,6 +217,7 @@ export default function Home() {
             error={error}
             hasSearched={hasSearched}
             onCardClick={setSelectedCard}
+            density={density}
           />
         </section>
       </main>

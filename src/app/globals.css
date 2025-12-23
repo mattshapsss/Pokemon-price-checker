@@ -191,37 +191,61 @@ body::before {
   border: 2px solid;
 }
 
+/* HOLO badge - Rainbow prismatic effect */
 .badge-holo {
   background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #ff6b6b);
   background-size: 200% 200%;
   animation: holographic 3s ease infinite;
   border-color: var(--poke-white);
   color: var(--poke-dark);
-  text-shadow: none;
+  text-shadow: 0 0 2px rgba(255,255,255,0.8);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
+/* REVERSE badge - Inverted shimmer effect */
 .badge-reverse {
-  background: var(--poke-blue);
-  border-color: #2a3b99;
-  color: var(--poke-white);
+  background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #1a237e 100%);
+  background-size: 200% 100%;
+  animation: reverse-shimmer 2s ease infinite;
+  border-color: #5c6bc0;
+  color: #e8eaf6;
+  text-shadow: 0 0 4px rgba(92, 107, 192, 0.6);
 }
 
+/* NORMAL badge - Subtle steel/silver texture */
 .badge-normal {
-  background: var(--poke-gray);
-  border-color: #666677;
+  background: linear-gradient(180deg, #8a8a9a 0%, #6a6a7a 50%, #5a5a6a 100%);
+  border-color: #4a4a5a;
   color: var(--poke-white);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
 }
 
+/* 1ST EDITION badge - Premium gold with glow */
 .badge-1st {
-  background: var(--poke-yellow);
-  border-color: var(--poke-yellow-dark);
-  color: var(--poke-dark);
+  background: linear-gradient(135deg, #ffd700 0%, #ffec8b 25%, #ffd700 50%, #daa520 75%, #ffd700 100%);
+  background-size: 200% 200%;
+  animation: gold-shine 2.5s ease infinite;
+  border-color: #b8860b;
+  color: #1a1a2e;
+  text-shadow: 0 0 2px rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
 }
 
 @keyframes holographic {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+@keyframes reverse-shimmer {
+  0% { background-position: 200% 0%; }
+  100% { background-position: -200% 0%; }
+}
+
+@keyframes gold-shine {
+  0% { background-position: 200% 200%; }
+  50% { background-position: 0% 0%; }
+  100% { background-position: 200% 200%; }
 }
 
 /* Loading spinner - pixel style */
