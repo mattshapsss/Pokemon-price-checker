@@ -217,7 +217,7 @@ function searchBySetAndNumber(setHint: string | undefined, cardNum: string): Cac
 /**
  * Search by name with exact-first strategy
  * 1. Exact substring matches in card name (case-insensitive)
- * 2. Fuzzy matches (only if exact yields few results)
+ * 2. Fuzzy matches ONLY if exact finds nothing (for typos like "pikachoo")
  */
 function searchByName(nameQuery: string): CachedCard[] {
   if (!cardData || !fuseIndex) return [];
@@ -225,37 +225,20 @@ function searchByName(nameQuery: string): CachedCard[] {
   const lower = nameQuery.toLowerCase().trim();
   if (!lower) return [];
 
-  // Step 1: Exact substring matches (prevents latias/latios issue)
+  // Step 1: Exact substring matches (prevents charizard ex returning base charizard)
   const exactMatches = cardData.cards.filter((card) =>
     card.name.toLowerCase().includes(lower)
   );
 
-  // If we have good exact matches, prioritize them
+  // If we have ANY exact matches, use them exclusively (no fuzzy pollution)
   if (exactMatches.length > 0) {
-    // Sort exact matches: exact name first, then by price
-    const sorted = exactMatches.sort((a, b) => {
+    // Sort: exact name match first, then by price
+    return exactMatches.sort((a, b) => {
       const aExact = a.name.toLowerCase() === lower ? 1 : 0;
       const bExact = b.name.toLowerCase() === lower ? 1 : 0;
       if (aExact !== bExact) return bExact - aExact;
       return b.highestPrice - a.highestPrice;
     });
-
-    // If we have enough exact matches, return them
-    if (sorted.length >= 10) {
-      return sorted;
-    }
-
-    // Otherwise, add fuzzy matches that aren't duplicates
-    const exactIds = new Set(sorted.map((c) => c.id));
-    const fuzzyResults = fuseIndex.search(nameQuery, { limit: 100 });
-
-    for (const result of fuzzyResults) {
-      if (!exactIds.has(result.item.id)) {
-        sorted.push(result.item);
-      }
-    }
-
-    return sorted;
   }
 
   // Step 2: No exact matches, use fuzzy only
